@@ -6,9 +6,6 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import kafka.message.Message;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
 import models.ApacheLog;
 
 import org.apache.avro.Schema;
@@ -26,6 +23,7 @@ import play.libs.F.Promise;
 import play.libs.ws.WS;
 import play.libs.ws.WSResponse;
 import play.mvc.Controller;
+import play.mvc.Result;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -33,7 +31,12 @@ public class SchemaHelper extends Controller {
 	
 	private static String SCHEMA_URL = "http://localhost:2876/schema-repo/";
 	public final static String broker = "10.0.14.52:9092,10.0.14.51:9092";
-	public final static String topic = "avroT";
+	public final static String topic = "dAvroTest1";
+	
+	public static Result shoot(String group, String id){
+		getSchemaById(group, id);
+		return ok();
+	}
 	
 	public static JsonNode  getSchemaById(String group, String id) {
 	    final Promise<JsonNode> resultPromise = WS.url(SCHEMA_URL+group+"/id/"+ id).get().map(
@@ -59,7 +62,7 @@ public class SchemaHelper extends Controller {
         al.setSize("a valid log size");
         al.setStatus("an error status");
         al.setUser("a valid user -dm");
-        al.setUserAgent("guy whi picked it up");
+        al.setUserAgent("guy who picked it up");
         
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DatumWriter<ApacheLog> writer = new SpecificDatumWriter<ApacheLog>(ApacheLog.class);
@@ -72,9 +75,6 @@ public class SchemaHelper extends Controller {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-      
-      
-        
         Logger.debug("Event Created");
         
         Properties props = new Properties();

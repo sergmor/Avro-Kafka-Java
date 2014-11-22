@@ -1,5 +1,6 @@
 package controllers;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,13 +13,23 @@ import kafka.javaapi.consumer.ConsumerConnector;
 import models.ApacheLog;
 
 import org.apache.avro.io.DatumReader;
+import org.apache.avro.io.Decoder;
+import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.specific.SpecificDatumReader;
+
+import play.Logger;
 
 
 public class JavaConsumer extends Thread{
 
+	public static void main(String[] args) {
+		JavaConsumer jc = new JavaConsumer("dAvroTest1");
+		jc.run();
+	}
+	
 	private final ConsumerConnector consumer;
 	private final String topic;
+	public boolean consume = true;
 
 	public JavaConsumer(String topic)
 	{
@@ -41,21 +52,28 @@ public class JavaConsumer extends Thread{
 	}
 
 	public void run() {
+		Logger.debug("in RUN");
 		Map<String, Integer> topicCountMap = new HashMap<String, Integer>();
 		topicCountMap.put(topic, new Integer(1));
 		Map<String, List<KafkaStream<byte[], byte[]>>> consumerMap = consumer.createMessageStreams(topicCountMap);
 		KafkaStream<byte[], byte[]> stream =  consumerMap.get(topic).get(0);
 		ConsumerIterator<byte[], byte[]> it = stream.iterator();
 		
-		/*
-		User user = reader.read(null, decoder);
-		DatumReader<ApacheLog> alDatumReader = new SpecificDatumReader<ApacheLog>(ApacheLog.class);
-		Decoder decoder = DecoderFactory.get().binaryDecoder(bytes, null);
-		DataFileReader<User> dataFileReader = new DataFileReader<User>(file, userDatumReader)
-		while(it.hasNext()){
+		
+		DatumReader<ApacheLog> reader = new SpecificDatumReader<ApacheLog>(ApacheLog.getClassSchema());
+		
+		
+		while(it.hasNext() && consume){
+			Decoder decoder = DecoderFactory.get().binaryDecoder(it.next().message(), null);
+			try {
+				ApacheLog log = reader.read(null, decoder);
+				Logger.debug(log.toString());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			
-			//System.out.println(new ApacheLog(it.next().message()));
-		}*/
+		}
 			
 	}
 }
