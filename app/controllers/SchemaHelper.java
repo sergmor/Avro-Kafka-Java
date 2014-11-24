@@ -3,7 +3,7 @@ package controllers;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import models.ApacheLog;
@@ -16,6 +16,7 @@ import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 
 import play.Logger;
 import play.libs.F.Function;
@@ -65,7 +66,7 @@ public class SchemaHelper extends Controller {
         al.setUserAgent("guy who picked it up");
         
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        DatumWriter<ApacheLog> writer = new SpecificDatumWriter<ApacheLog>(ApacheLog.class);
+        DatumWriter<ApacheLog> writer = new SpecificDatumWriter<ApacheLog>(schema);
         Encoder encoder = EncoderFactory.get().binaryEncoder(out, null);
         try {
 			writer.write(al, encoder);
@@ -82,17 +83,12 @@ public class SchemaHelper extends Controller {
 
         Producer producer = new KafkaProducer(props);
         Logger.debug("will log to topic");
-        try {
-			producer.send(new ProducerRecord(topic, out.toByteArray())).get();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ExecutionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+        
+		Future<RecordMetadata> futureM = producer.send(new ProducerRecord(topic, out.toByteArray()));	
         
         producer.close();
+        
+        
         
 	    return res;
 	}

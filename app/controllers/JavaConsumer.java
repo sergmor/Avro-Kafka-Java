@@ -1,6 +1,7 @@
 package controllers;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,8 +11,10 @@ import kafka.consumer.ConsumerConfig;
 import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
+import kafka.message.MessageAndMetadata;
 import models.ApacheLog;
 
+import org.apache.avro.Schema;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
@@ -59,15 +62,25 @@ public class JavaConsumer extends Thread{
 		KafkaStream<byte[], byte[]> stream =  consumerMap.get(topic).get(0);
 		ConsumerIterator<byte[], byte[]> it = stream.iterator();
 		
-		
-		DatumReader<ApacheLog> reader = new SpecificDatumReader<ApacheLog>(ApacheLog.getClassSchema());
-		
+		Schema.Parser parser = new Schema.Parser();
+        Schema schema = parser.parse(SchemaHelper.getSchemaById("logMessage", "2").toString());
+		DatumReader<ApacheLog> reader = new SpecificDatumReader<ApacheLog>(schema);
+		//DatumReader<ApacheLog> reader = new SpecificDatumReader<ApacheLog>(ApacheLog.getClassSchema());
 		
 		while(it.hasNext() && consume){
-			Decoder decoder = DecoderFactory.get().binaryDecoder(it.next().message(), null);
+			MessageAndMetadata<byte[],byte[]> mes = it.next();
+			//if(mes.valueDecoder() != null) Logger.debug("decoder " + mes.valueDecoder());
+			//Logger.debug(mes.valueDecoder().toString());
+			//byte[] key = mes.key();
+			//Logger.debug("key " + key + " as string " + new String(key));
+			byte[] bytes = mes.message();
+			byte[] byteCopy = Arrays.copyOf(bytes, bytes.length);
+			Logger.debug("got bytes " + byteCopy.length + "original "+ bytes.length+ " with initial byte " + new String(new byte[] {byteCopy[0]}) + " and " + byteCopy[1]);
+			Logger.debug("got bytes " + new String(byteCopy));
+			Decoder decoder = DecoderFactory.get().binaryDecoder(bytes, null);
 			try {
 				ApacheLog log = reader.read(null, decoder);
-				Logger.debug(log.toString());
+				Logger.debug("consumer got " + log.toString());
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
